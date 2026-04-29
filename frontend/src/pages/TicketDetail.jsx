@@ -10,6 +10,11 @@ const TicketDetail = () => {
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('');
   
+  // AI State
+  const [aiSuggestion, setAiSuggestion] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState('');
+
   const role = localStorage.getItem('role');
 
   useEffect(() => {
@@ -31,6 +36,22 @@ const TicketDetail = () => {
   const handleUpdate = () => {
     alert('Status updated successfully');
     setTicket({ ...ticket, status });
+  };
+
+  const generateAISuggestion = async () => {
+    setAiLoading(true);
+    setAiError('');
+    try {
+      const res = await api.post('/ai/suggest', { 
+        description: ticket.description,
+        category: ticket.category 
+      });
+      setAiSuggestion(res.data.suggestion);
+    } catch (err) {
+      setAiError(err.response?.data?.message || 'Failed to generate AI suggestion.');
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   if (loading) return <Loader />;
@@ -64,7 +85,7 @@ const TicketDetail = () => {
         </div>
 
         {role === 'admin' && (
-          <div style={{ background: 'linear-gradient(135deg, rgba(59,130,246,0.1), rgba(37,99,235,0.05))', padding: '2rem', borderRadius: '16px', border: '1px solid rgba(59,130,246,0.3)' }}>
+          <div style={{ background: 'linear-gradient(135deg, rgba(59,130,246,0.1), rgba(37,99,235,0.05))', padding: '2rem', borderRadius: '16px', border: '1px solid rgba(59,130,246,0.3)', marginBottom: '2rem' }}>
             <h3 style={{ color: '#60a5fa', marginBottom: '1rem', fontSize: '1.5rem' }}>Admin Controls</h3>
             <p style={{ color: '#94a3b8', marginBottom: '1.5rem' }}>Update the operational status of this ticket.</p>
             <div style={{ display: 'flex', gap: '1rem' }}>
@@ -76,6 +97,41 @@ const TicketDetail = () => {
               </select>
               <button onClick={handleUpdate} className="btn" style={{ padding: '1rem 2rem', background: 'linear-gradient(135deg, #3b82f6, #2563eb)', borderRadius: '12px', fontSize: '1rem' }}>Update Status</button>
             </div>
+          </div>
+        )}
+
+        {/* AI Integration Section */}
+        {role === 'admin' && (
+          <div style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(5,150,105,0.05))', padding: '2rem', borderRadius: '16px', border: '1px solid rgba(16,185,129,0.3)' }}>
+            <div className="flex-between" style={{ marginBottom: aiSuggestion || aiError ? '1.5rem' : '0' }}>
+              <div>
+                <h3 style={{ color: '#34d399', marginBottom: '0.5rem', fontSize: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>✨ AI Assistant</h3>
+                <p style={{ color: '#94a3b8', margin: 0 }}>Generate a smart resolution strategy using Google Gemini AI.</p>
+              </div>
+              <button 
+                onClick={generateAISuggestion} 
+                disabled={aiLoading} 
+                className="btn" 
+                style={{ padding: '0.8rem 1.5rem', background: 'linear-gradient(135deg, #10b981, #059669)', borderRadius: '12px', fontSize: '1rem', boxShadow: '0 4px 10px rgba(16,185,129,0.3)' }}
+              >
+                {aiLoading ? 'Generating...' : 'Ask AI for Fix'}
+              </button>
+            </div>
+
+            {aiError && (
+              <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#fca5a5', padding: '1rem', borderRadius: '8px', border: '1px solid #ef4444' }}>
+                {aiError}
+              </div>
+            )}
+
+            {aiSuggestion && (
+              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '1.5rem', borderRadius: '12px', border: '1px solid rgba(16,185,129,0.2)' }}>
+                <h4 style={{ color: '#6ee7b7', marginBottom: '1rem', fontSize: '1.1rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Suggested Resolution</h4>
+                <div style={{ color: '#f8fafc', lineHeight: '1.6', fontSize: '1.05rem', whiteSpace: 'pre-wrap' }}>
+                  {aiSuggestion}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
